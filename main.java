@@ -1,1 +1,0 @@
-// Starting Ruby-Job-Scheduler service\n
