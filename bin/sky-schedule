@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "json"
+require_relative "../lib/sky_schedule"
+
+scheduler = SkySchedule::Scheduler.new
+scheduler.register(id: "demo.cleanup", interval_seconds: 300, start_at: "2026-01-01T00:00:00Z")
+
+puts JSON.generate(
+  product: "Sky Schedule Ruby",
+  status: "engineering-beta",
+  command_execution: false,
+  jobs: scheduler.list,
+  example_next_run: scheduler.next_run(id: "demo.cleanup", after: "2026-01-01T00:06:00Z")
+)
