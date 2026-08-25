@@ -1,44 +1,65 @@
-<!-- PORTFOLIO PROJECT PROFILE: maintained by the repository owner -->
+# Sky Ruby Scheduler
 
-## Project profile and code-audit snapshot
+**Status: engineering beta.**
 
-**What this is:** **Ruby-Job-Scheduler** is a public repository described as: “Enterprise-grade job scheduler implementation in Ruby. #SkyCoin4444 #AI #Blockchain #DevOps #Innovation” Its dominant language signals are **Python (4 files)**.
+Sky Ruby Scheduler is a dependency-light Ruby scheduling primitive for registering bounded interval jobs, checking which jobs are due, calculating the next due time, and producing stable machine-readable schedule metadata.
 
-**Why it has value:** Its value is best understood through the implementation evidence currently present in the repository: **18 tracked files** were observed in the shallow audit, with the source structure and existing documentation providing the project’s specific context. This README does not treat a prototype, experiment, or archive as a production system without supporting evidence.
+It deliberately **does not execute commands or jobs**. The CLI reports `execution_performed: false`. This repository does not claim to be a distributed scheduler, cron daemon, workflow engine, durable queue, HA control plane, timezone-aware calendar scheduler, or verified production deployment.
 
-**Implementation evidence:** 2 test-related file(s) detected; 2 dependency or package manifest(s) detected; 2 build/CI/infrastructure signal(s) detected; and 3 documentation or governance file(s) detected. Test filenames observed include `tests/__init__.py`, `tests/test_main.py`. Dependency or package files include `package.json`, `requirements.txt`. Build, CI, or infrastructure signals include `Dockerfile`, `.github/workflows/ci.yml`.
+## Capabilities
 
-**Current status:** The repository is tracked on the `main` branch. The existing source tree, configuration, tests, workflows, and documentation remain authoritative for supported behavior and maturity. A code audit is not a production-readiness certification, and the presence of a test or workflow file does not establish that all checks pass.
+- Ruby 3.3 / standard library only at runtime
+- validated job identifiers
+- bounded registry capacity
+- intervals from 1 second through 365 days
+- deterministic due-job ordering
+- next-run advancement that skips missed intervals
+- stable JSON CLI output
+- Minitest lifecycle and validation coverage
+- syntax/test/container CI gates
+- non-root runtime container
 
-**Relationship to the wider portfolio:** This repository is one focused component of the broader Skyler Blue Spillers portfolio across AI, software engineering, cloud and DevOps, cybersecurity, blockchain, finance, education, social systems, and creative work. It may provide a service boundary, implementation pattern, experiment, archive, or reusable idea for related repositories. Treat repositories as technical dependencies only where documented interfaces and verified project requirements support that relationship.
+## Usage
 
-**Quality and security note:** No obvious secret-like pattern was detected by the limited static scan; this is not a substitute for a security audit. No TODO/FIXME marker was detected in the scanned text files.
+```bash
+ruby -Ilib:test test/test_scheduler.rb
+ruby bin/sky-scheduler
+```
 
----
+Optional CLI environment variables:
 
-# Ruby Job Scheduler
+```bash
+SKY_SCHEDULER_JOB_ID=analytics.refresh \
+SKY_SCHEDULER_INTERVAL_SECONDS=300 \
+SKY_SCHEDULER_START_AT=2026-08-24T00:00:00Z \
+ruby bin/sky-scheduler
+```
 
-![GitHub stars](https://img.shields.io/github/stars/skylerblue333/Ruby-Job-Scheduler?style=flat-square)
-![GitHub license](https://img.shields.io/github/license/skylerblue333/Ruby-Job-Scheduler?style=flat-square)
+Example response:
 
-## 🌟 Overview
-**Ruby-Job-Scheduler** is a professional-grade project within the **SkyCoin4444** ecosystem. It focuses on delivering high-value solutions in the domain of **Python**.
+```json
+{
+  "status": "ok",
+  "execution_performed": false,
+  "scheduler_scope": "in_process_schedule_calculation",
+  "job": {
+    "id": "analytics.refresh",
+    "interval_seconds": 300,
+    "next_run_at": "2026-08-24T00:00:00Z"
+  }
+}
+```
 
-## 🚀 Key Features
-- **Scalable Architecture**: Designed for enterprise-level growth and performance.
-- **Modern Standards**: Implements best practices for clean code and maintainability.
-- **Robust Integration**: Built to work seamlessly within modern cloud-native environments.
+## Library contract
 
-## 🛠️ Technology Stack
-- **Primary Domain**: Python
-- **Ecosystem**: SkyCoin4444 Digital Platform
+`SkyScheduler::Registry` supports `register`, `fetch`, `remove`, `due`, `advance`, `size`, and `snapshot`. All state is process-local and in-memory.
 
-## 📂 Structure
-The project is organized into a modular structure to ensure clarity and ease of development.
+## SKYCOIN4444 integration
 
-## 👨‍💻 Author
-**Skyler Blue Spillers**
-*Professional Chess Player & Software Engineer*
+A consumer can use this library to calculate deterministic due times for internal maintenance or background-work metadata. Actual execution should be delegated to a separately authenticated and durable worker/queue boundary.
 
----
-*Powered by SkyCoin4444*
+## Security and reliability boundaries
+
+The scheduler never accepts shell commands and never executes caller-controlled code. It is intentionally dependency-light. Persistence, distributed locking, leader election, retries, calendars/timezones, authentication, audit-log durability, and execution isolation are outside this repository's verified scope.
+
+See `SECURITY.md` for reporting and supported boundaries.
