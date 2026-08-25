@@ -1,12 +1,36 @@
-name: CI
-on: [push, pull_request]
+name: scheduler-ci
+on:
+  push:
+    branches: [main, "product/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
         with:
-          python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: pytest tests/ -v
+          ruby-version: "3.3"
+      - name: Syntax check
+        run: |
+          ruby -c lib/sky_scheduler.rb
+          ruby -c test/test_scheduler.rb
+          ruby -c bin/sky-scheduler
+      - name: Tests
+        run: ruby -Ilib:test test/test_scheduler.rb
+      - name: CLI truth smoke
+        run: |
+          output="$(ruby bin/sky-scheduler)"
+          echo "$output"
+          ruby -rjson -e 'd=JSON.parse(STDIN.read); abort "unexpected execution claim" unless d["execution_performed"] == false' <<<"$output"
+      - name: Build non-root image
+        run: docker build -t sky-ruby-scheduler:${{ github.sha }} .
+      - name: Verify non-root image and runtime
+        run: |
+          test "$(docker inspect -f '{{.Config.User}}' sky-ruby-scheduler:${{ github.sha }})" != ""
+          docker run --rm sky-ruby-scheduler:${{ github.sha }} | ruby -rjson -e 'd=JSON.parse(STDIN.read); abort unless d["execution_performed"] == false'
