@@ -1,12 +1,28 @@
-name: CI
-on: [push, pull_request]
+name: schedule-ruby-ci
+on:
+  push:
+  pull_request:
+
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
         with:
-          python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: pytest tests/ -v
+          ruby-version: '3.3'
+      - name: Syntax
+        run: |
+          ruby -c lib/sky_schedule.rb
+          ruby -c bin/sky-schedule
+          ruby -c test/test_sky_schedule.rb
+      - name: Tests
+        run: ruby -Ilib:test test/test_sky_schedule.rb
+      - name: CLI smoke
+        run: ruby bin/sky-schedule | grep '"command_execution":false'
+      - name: Build container
+        run: docker build -t sky-schedule-ruby .
+      - name: Verify non-root container
+        run: |
+          test "$(docker run --rm --entrypoint id sky-schedule-ruby -u)" != "0"
+          docker run --rm sky-schedule-ruby | grep '"command_execution":false'
