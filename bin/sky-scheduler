@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "json"
+require "time"
+require_relative "../lib/sky_scheduler"
+
+registry = SkyScheduler::Registry.new
+start_at = Time.parse(ENV.fetch("SKY_SCHEDULER_START_AT", Time.now.utc.iso8601))
+interval = Integer(ENV.fetch("SKY_SCHEDULER_INTERVAL_SECONDS", "60"), 10)
+job_id = ENV.fetch("SKY_SCHEDULER_JOB_ID", "demo.job")
+
+job = registry.register(id: job_id, interval_seconds: interval, start_at: start_at)
+
+puts JSON.generate(
+  status: "ok",
+  execution_performed: false,
+  scheduler_scope: "in_process_schedule_calculation",
+  job: job.to_h
+)
